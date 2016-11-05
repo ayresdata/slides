@@ -20,7 +20,7 @@ a, a > code {
 	text-decoration: none;
 }
 code {
-	background: none repeat scroll 0 0 #F8F8FF;
+	background: none repeat scroll 0 0 #F8F8FF; 
   border: 1px solid #DEDEDE;
   border-radius: 3px 	;
   padding: 0 0.2em;
@@ -47,7 +47,7 @@ code {
 }
 .main-title, .title {
 	background: #272822;
-	color: #777872;
+	color:  #777872; 
 	text-shadow: 0 0 20px #333;
 }
 .title h1, .title h2, .main-title h1, .main-title h2 {
