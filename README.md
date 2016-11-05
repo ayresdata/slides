@@ -11,3 +11,18 @@ Año/Tecnología/Conferencia_o_evento.
 Por ejemplo, una presentación en el PL del 2017 sobre Postgres, debería ser: `2017/Postgres/PLSC17/`.
 
 Para los PDF, se recomienda usar un subdirectorio llamado `output` (para evitar templates y pdfs en el mismo directorio).
+
+
+# A futuro
+
+A futuro vamos a usar Latex, pero para salir al ruedo vamos a usar markdown.
+
+# Tool
+
+La tool que permitía CSS y me pareció la más  limpia fue: 
+
+https://github.com/partageit/markdown-to-slides
+https://github.com/pwlmaciejewski/markdown-html
+
+
+
