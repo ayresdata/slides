@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>_PITR_ (*P*oint *I*n *T*ime *R*ecovery)</title>
+		<style>
+			body {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+h1, h2, h3 {
+	font-weight: 400;
+	margin-bottom: 0;
+}
+.remark-slide-content h1 { font-size: 3em; }
+.remark-slide-content h2 { font-size: 2em; }
+.remark-slide-content h3 { font-size: 1.6em; }
+.footnote {
+	position: absolute;
+	bottom: 3em;
+}
+li p { line-height: 1.25em; }
+.red { color: #fa0000; }
+.large { font-size: 2em; }
+a, a > code {
+	color: rgb(249, 38, 114);
+	text-decoration: none;
+}
+code {
+	background: none repeat scroll 0 0 #F8F8FF; 
+  border: 1px solid #DEDEDE;
+  border-radius: 3px 	;
+  padding: 0 0.2em;
+}
+.remark-code, .remark-inline-code { font-family: "Bitstream Vera Sans Mono", "Courier", monospace; }
+.remark-code-line-highlighted     { background-color: #373832; }
+.pull-left {
+	float: left;
+	width: 47%;
+}
+.pull-right {
+	float: right;
+	width: 47%;
+}
+.pull-right ~ p {
+	clear: both;
+}
+#slideshow .slide .content code {
+	font-size: 0.8em;
+}
+#slideshow .slide .content pre code {
+	font-size: 0.9em;
+	padding: 15px;
+}
+.main-title, .title {
+	background: #272822;
+	color:  #777872; 
+	text-shadow: 0 0 20px #333;
+}
+.title h1, .title h2, .main-title h1, .main-title h2 {
+	color: #f3f3f3;
+	line-height: 0.8em;
+}
+/* Custom */
+.remark-code {
+	display: block;
+	padding: 0.5em;
+}
+
+		</style>
+	</head>
+	<body>			
+		<textarea id="source">
+
+<!-- $theme: default -->
+
+# _PITR_ (*P*oint *I*n *T*ime *R*ecovery)  
+
+## _Rebobinando_ PostgreSQL ;)
+
+<BR />
+
+<br />
+<br />
+<br />
+<BR />
+<BR />
+<BR />
+<BR />
+gerardo.herzig @ ayres.io Data Team
+
+---
+
+## Prerequisitos:
+- SQL
+- Linux
+- Terminal / shell script
+
+---
+## _Backups_
+### Los Backups son geniales!!
+... (a las 4 am)
+
+![Backup con pg_dump][pg_dump]
+
+---
+
+### Pero los errores suceden...
+#### (A toda hora!!)
+![Dropeando la tabla principal][drop_table]
+Oops!!
+
+---
+## PITR - *Implementación básica :: Concepto*
+![Imagen conceptual][pitr_concepto]
+
+---
+## PITR - *Implementación básica :: Concepto*
+![Imagen conceptual][pitr_mas_archive_cmd]
+
+---
+## PITR - *Implementación básica :: Concepto*
+![Imagen conceptual][pitr_mas_pg_basebackup]
+
+---
+
+
+## *Configuración* 
+En el "master":
+- *postgresql.conf:*
+   ```bash
+   wal_level = archive #o hot_standby
+   archive_command = 'rsync %p $BACKUP_IP:/wal_files/%f' ##Ejemplo minimalista!!
+   max_wal_senders = 2 # mínimo
+   ```
+- *pg_hba.conf:*
+  ```bash
+   #type "database" user     address     auth_method 
+   host replication backuper $BACKUP_IP md5 
+   ```
+
+- Usuario dedicado:
+  ```sql 
+  CREATE USER backuper REPLICATION;
+
+  ```
+
+---
+## *Mientras tanto...*
+En el "archiver":
+- Realizamos el filesystem backup (marcando nuestro tiempo 0)
+  ```bash
+  postgres@archiver:~ pg_basebackup -D $DATA_DIR -Ubackuper -h $MASTER_IP
+  ```
+  
+ Los *WAL* files se acumularán en /wal_files/...los ultizaremos pronto! 
+
+---
+## Aplicando *PITR* (finalmente!!)
+- Llegado el momento, configuramos al *archiver* para procesar los *WAL* files hasta unos momentos antes del incidente :)
+   ```bash
+   postgres@archiver:~ cat $DATA_DIR/recovery.conf
+   restore_command = 'cp /wal_files/%f %p'
+   recovery_target_time = '2016-11-21 14:47:49'
+   ```
+   
+   
+- Levantamos el servicio, dejamos que procese los WALs y....
+---
+![salvados][count]
+
+Tada!!!!! :) :) :)
+
+---
+## Como seguir:
+- Testear!
+- Automatizar
+- Monitorear
+
+---
+
+### Podéis hacerme 3 preguntas...
+
+Gracias, espero que os haya iluminado..
+
+Vuelvan prontos!
+
+;)
+
+
+[pg_dump]: ./img/execute_pgdump.jpg
+[drop_table]: ./img/execute_drop_table_4.jpg
+[pitr_concepto]: ./img/pitr_concepto.png
+[pitr_mas_archive_cmd]:./img/pitr_mas_archive_cmd.png
+[pitr_mas_pg_basebackup]:./img/pitr_mas_pg_basebackup.png
+[count]: ./img/execute_select_count.jpg
+
+
+
+
+		</textarea>
+		<script src="http://gnab.github.io/remark/downloads/remark-latest.min.js"></script>
+		<img src="../img/svg/SVGlogo_NEW.png" style="float: left;" width="200" height="100" alt="Ayres">
+		<script>
+			var slideshow = remark.create();
+		</script>
+		<script></script>
+	</body>
+</html>
