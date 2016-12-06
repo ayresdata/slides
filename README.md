@@ -24,5 +24,7 @@ La tool que permitía CSS y me pareció la más  limpia fue:
 https://github.com/partageit/markdown-to-slides
 https://github.com/pwlmaciejewski/markdown-html
 
+# Generar slides
 
+Para generar slides basta con ejecutar _make_ en la raíz del repositorio. Los slides en HTML se guardan en el directorio _output_ con la misma jerarquía de directorios que la original.
 
