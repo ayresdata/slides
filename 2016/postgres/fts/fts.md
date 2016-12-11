@@ -1,23 +1,21 @@
 #FTS (*F*ull *T*ext *S*earch)
 
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
 
-abel.osorio @ ayres.io Data Team
+> abel.osorio @ ayres.io Data Team
 
 ---
 ## Prerequisitos
 
-* PostgreSQL 8.3 o superior.
+* PostgreSQL 9.2 o superior.
+
+> Si bien FTS es soportado desde versiones antiguas, no es recomendable
+> utilizar versiones EOL.
 
 ---
+
 ## Búsqueda de texto
-### Operadores más conocidos: `=`, `~`, `~*`, `LIKE`, `ILIKE`.
+
+Operadores más conocidos: `=`, `~`, `~*`, `LIKE`, `ILIKE`.
 
 ```sql
 postgres=# SELECT 'tortuga' = 'tortuga',
@@ -33,29 +31,45 @@ postgres=# SELECT 'tortuga' = 'tortuga',
 ```
 
 ---
+
 ## Problemas con estos operadores
 
-* No tienen soporte lingüístico. Se hace complicado buscar derivados de una palabra, ej: camino, caminar, caminando...
-
-* No proveen un orden (_ranking_) por relevancia de los resultados de búsqueda.
-
-* Falta de índices. ¿Por qué? Si quisierámos, podríamos indexar la búsqueda de `LIKE '%gatos'`. ¿Y si ahora queremos buscar por `LIKE 'gatos%'`? habría que crear otro índice...
+- No tienen soporte lingüístico. Se hace complicado buscar derivados de una palabra, ej: camino, caminar, caminando...
+- No proveen un orden (_ranking_) por relevancia de los resultados de búsqueda.
+- Los índices BTREE no soportan búsquedas con multi comodines (`LIKE '%esto%'`). Se puede utilizar GIST o GIN con soporte
+  trigram.
+- A mayor cantidad de filas procesadas, consumen una considerable quota de tiempo de usuarui de CPU.
 
 ---
 ## FTS al rescate!
 
-**FTS** o **Full Text Search** es una técnica de búsqueda de una o más _cadenas_ en un _documento_ **por similitud** y, opcionalmente, permite ordenar los resultados de la búsqueda por relevancia.
+> **FTS** o **Full Text Search** es una técnica de búsqueda de una _expresión_ en un _documento_ procesado a través de diccionarios y permite ordenar los resultados de la búsqueda por relevancia.
 
-Un _documento_ es la unidad de búsqueda, por ejemplo: un post, un e-mail, una cadena de texto, una columna de una tabla... etc.
+> Un _documento_ es la unidad de búsqueda normalizada a través de diccionarios, por ejemplo: un post, un e-mail, una cadena de texto, una columna de una tabla... etc. 
+
+> Una _expresión_ es la consulta que queremos hacer sobre el documento. 
 
 ---
-## ¿Cómo funciona?
 
-* Representa al documento con el tipo _tsvector_.
+## Tipos de datos y operadores principales
 
-* Y a la cadena (más específicamente _query_) con el tipo _tsquery_.
+- Representa al documento con el tipo _tsvector_.
+- Una _expresión_ que usa operadores internos y un tipo de dato (_tsquery_).
+- El operador más utilizado es `@@`, el cual permite comparar un `tsvector` utilizando una expresión en _tsquery_.
 
-* Finalmente accede a _FTS_ utilizando el operador _@@_, el cual retorna _true_ si un _tsvector_ verifica un _tsquery_.
+---
+
+## Diccionarios
+
+Los diccionarios soportados son: 
+
+- simple
+- synonym
+- thesaurus
+- ispell
+- snowball
+
+Más información [aquí](https://www.postgresql.org/docs/9.6/static/textsearch-dictionaries.html). 
 
 ---
 ## ¿Cómo funciona?
@@ -65,11 +79,13 @@ Contiene una representación normalizada del _documento_.
 
 Por ejemplo, para llevar la cadena "Los gatos más curiosos" a _tsvector_ PostgreSQL:
 
-1. Identifica los _tokens_ (palabras, números, etc).
+1. Identifica los _tokens_ (palabras, números, etc). Esto es el proceso de _parsing_ y se puede examinar con `ts_debug`.
+2. Se eliminan las _stop words_. 
+3. Convierte estos _tokens_ en _lexemas_ (_tokens_ normalizados). 
+4. Almacena toda esta información en un arreglo.
 
-2. Convierte estos _tokens_ en _lexemas_ (_tokens_ normalizados). En este punto también se eliminan las _stop words_.
-
-3. Almacena toda esta información en un arreglo.
+> El orden depende del diccionario. Por ejemplo, Snowball elimina las _stop words_ al principio.
+> La elimincación de las stop words afecta la posición del lexema.
 
 ---
 ## ¿Cómo funciona?
@@ -106,7 +122,7 @@ postgres=# SELECT to_tsvector('Los gatos más curiosos') @@ 'curios & ! gat'::ts
 ---
 ## ¿Cómo funciona?
 
-Notar que el orden de los factores es indistinto y que se puede usar cualquier diccionario (por defecto PostgreSQL utiliza el _simple_):
+Notar que el orden de los factores es indistinto y que se pueden usar varios tipos diccionarios, por defecto se usa _simple_:
 
 ```sql
 postgres=# SELECT plainto_tsquery('spanish', 'yo vender gato') @@ to_tsvector('spanish', 'Yo vendo un gato');
